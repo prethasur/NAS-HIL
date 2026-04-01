@@ -1,0 +1,132 @@
+# ============================================================================
+# TINAS-ShipDet: Master Configuration (all fixes applied)
+# ============================================================================
+
+datasets:
+  hrsid:
+    data_yaml: "C:/Users/pretha/Desktop/optimization-paper-code/HRSID.v1i.yolov11/data.yaml"
+    imgsz: 800
+    nc: 1
+  ssdd:
+    data_yaml: "C:/Users/pretha/Desktop/optimization-paper-code/SSDD.v1i.yolov11/data.yaml"
+    imgsz: 512
+    nc: 1
+  ls_ssdd:
+    data_yaml: "data/ls_ssdd/data.yaml"
+    imgsz: 800
+    nc: 1
+
+# Fix #9: search alternates between these datasets each generation
+active_datasets: ["hrsid", "ssdd"]
+
+# Fix #3: SAR images are grayscale but replicated to 3 channels for
+# compatibility with pretrained backbones. Documented in paper Section V-C:
+# "SAR intensity images are replicated to three channels for backbone
+# compatibility; no colour augmentations (hsv_h=0, hsv_s=0) are applied."
+sar_input_note: "3-channel replicated grayscale (standard SAR practice)"
+
+# Fix #7: use COCO-pretrained backbone where available.
+# Set false to train from scratch (for ablation).
+pretrained_backbone: true
+
+# --- NAS ---
+nas:
+  population_size: 20
+  generations: 15
+  mutation_prob: 0.25
+  crossover_prob: 0.9
+  seed: 42
+  proxy_epochs: 30
+  proxy_batch_size: 16
+  proxy_patience: 10
+  full_epochs: 200
+  full_batch_size: 16
+  full_patience: 30
+  full_seeds: [0, 1, 2, 3, 4]
+
+# Fix #8: objectives are ferr + flat + feng (3 objectives).
+# Memory is a HARD CONSTRAINT, not a 4th objective.
+# Rationale: all lightweight models (width ≤ 0.75, batch=1) use 50-300MB
+# on Jetson 8GB — memory doesn't discriminate between candidates.
+objectives:
+  active: ["ferr", "flat", "feng"]   # NOT fmem — it's a constraint
+  tau: 0.95
+  risk_mode: "percentile"
+  lambda_sigma: 0.5
+
+# Fix #8: memory budget as hard constraint (reject candidates exceeding this)
+constraints:
+  max_gpu_mb: 512.0     # Jetson Orin Nano 8GB; leave headroom for OS/CUDA
+  max_latency_ms: 200.0 # optional: hard latency cap
+
+dominance:
+  eta: 0.70
+  bootstrap_draws: 200
+
+resampling:
+  enabled: true
+  delta: 0.08
+  delta_n: 30
+  max_timed_runs: 300
+  resample_fronts: 2
+
+# --- Profiling ---
+profiling:
+  warmup_runs: 50
+  timed_runs: 300            # for final Pareto models
+  search_timed_runs: 100     # during search (saves time; resample if uncertain)
+  cold_start_repeats: 5
+  batch_size: 1
+  conf_threshold: 0.25
+  iou_threshold: 0.7
+  num_profile_images: 50
+  use_half: true
+  profile_in_ram: true
+
+# --- Laptop ---
+laptop:
+  device: 0
+  workers: 4
+  proxy_screen:
+    enabled: true
+    max_latency_ms: 500
+
+# --- Jetson ---
+jetson:
+  mode: "ssh"                # "ssh" for remote, "local" for on-device or laptop testing
+  host: "10.112.75.30"
+  user: "iisri"
+  password: "iisri1234"
+  key_file: "~/.ssh/id_rsa"
+  ssh_options:               # fallback cipher/MAC options for older SSH servers
+    ciphers: "aes128-ctr"
+    macs: "hmac-sha1"
+  remote_workdir: "/home/iisri/tinas_profiling"
+  power_mode: "MAXN"
+  jetson_clocks: true
+  runtime: "tensorrt_fp16"
+  energy:
+    enabled: false           # set true when running on actual Jetson
+    power_paths: []
+    sample_period_ms: 10
+
+# --- Export ---
+export:
+  opset: 17
+  simplify: true
+  fp16: true
+  int8: false
+  workspace_gb: 2
+
+# --- KD ---
+distillation:
+  enabled: false             # enable for final retraining: --use-kd
+  teacher_model: "yolov8m.pt"
+  temperature: 4.0
+  alpha_kd: 0.5
+
+# --- Output ---
+output:
+  base_dir: "runs/tinas_search"
+  save_profiling_raw: true
+  track_search_cost: true

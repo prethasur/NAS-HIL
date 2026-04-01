@@ -1,0 +1,27 @@
+{
+  "proxy_epochs": 15,
+  "full_epochs": 80,
+  "dataset": "hrsid",
+  "n_archs": 2,
+  "spearman_rho_mAP": null,
+  "results": [
+    {
+      "uid": "dd0cd9ce53",
+      "genome": null,
+      "proxy_mAP": 0.5696487145712731,
+      "full_mAP": 0.6110233918459544,
+      "laptop_p95_ms": 8.878325000051746,
+      "laptop_mean_ms": 8.46375666668564,
+      "reused_existing": true
+    },
+    {
+      "uid": "f0909ab57f",
+      "genome": null,
+      "proxy_mAP": 0.5360430778591981,
+      "full_mAP": 0.6083199689200984,
+      "laptop_p95_ms": 8.803625000018656,
+      "laptop_mean_ms": 8.23024333332872,
+      "reused_existing": true
+    }
+  ]
+}
